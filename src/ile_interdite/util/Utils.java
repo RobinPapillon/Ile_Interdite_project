@@ -110,7 +110,8 @@ public class Utils {
         CHOISIR_TUILE("Sélectionner une tuile"), 
         DEPLACER("Déplacer un pion"),
         VOIR_DEFAUSSE_TIRAGE("Un joueur souhaite voir la défausse de cartes Tirage"),
-	VOIR_DEFAUSSE_MEAUX("Un joueur souhaite voir la défausse de cartes montée des eaux");
+	VOIR_DEFAUSSE_MEAUX("Un joueur souhaite voir la défausse de cartes montée des eaux"),
+	INSCRIPTION("L'INSCRIPTION EST FAAAAAAAAAAAAAITE");
 
         private final String libelle ;
 

@@ -17,7 +17,9 @@ import ile_interdite.util.Utils.Role;
 import ile_interdite.util.Utils.Commandes;
 import ile_interdite.CarteTirage.TypeTresor;
 import ile_interdite.Plateau.Coordonnee;
+import ile_interdite.Vue.VueInscription;
 import ile_interdite.Vue.VuePlateau;
+import ile_interdite.util.MessageInscription;
 import ile_interdite.util.MessagePlateau;
 import java.awt.Color;
 import java.util.ArrayList;
@@ -33,6 +35,7 @@ public class Controleur implements Observer{
 
 	private Grille grille;
 	private VuePlateau vuePlateau;
+	private VueInscription vueInscription;
 	private ArrayList<Aventurier> joueurs;	// La liste des aventurier en jeu
         private int indexJoueurActuel;
 	private int nbAction;			// Le nombre d'actions disponible pour un tour
@@ -62,6 +65,9 @@ public class Controleur implements Observer{
 	    initTresor();
 	    lastCmd = Commandes.TERMINER;
 	    lastlastCmd = Commandes.TERMINER;
+	    
+	    vueInscription = new VueInscription();
+	    vueInscription.addObserver(this);
 	}
         
 	public void showDeplacementPossible()
@@ -161,16 +167,16 @@ public class Controleur implements Observer{
 	public void inscrireJoueurs()
 	{
 	    //Joueurs predefini
-	    joueurs.add(new Ingenieur("R2D2"));
+	    //joueurs.add(new Ingenieur("R2D2"));
 	    joueurs.add(new Pilote("Foehammer"));
-	    joueurs.add(new Explorateur("Indiana Jones"));
+	    //joueurs.add(new Explorateur("Indiana Jones"));
 	    //joueurs.add(new Messager("Radar"));
 	    //joueurs.add(new Navigateur("Cousteau"));
 	    //joueurs.add(new Plongeur("Yellow submarine"));
 	    
 	    joueurs.get(0).placerAventurier(grille);
-	    joueurs.get(1).placerAventurier(grille);
-	    joueurs.get(2).placerAventurier(grille);
+	    //joueurs.get(1).placerAventurier(grille);
+	    //joueurs.get(2).placerAventurier(grille);
 //	    joueurs.get(3).placerAventurier(grille);
 	    
 	    /*
@@ -227,6 +233,8 @@ public class Controleur implements Observer{
 	}
 	Collections.shuffle(piocheCI);
 	
+	for(int i = 0 ; i < 6 ; i++) tirerCarteInnondation();
+	
 	/* TIRAGE */
 	// On ajoute a la pioche toutes les cartes que peuvent avoir en debut de jeu les joueurs
 	for(Tresor tresor : tresors) for(int i = 0 ; i < 5 ; i++) piocheCT.add(new CarteTresor(tresor));
@@ -237,6 +245,7 @@ public class Controleur implements Observer{
 	// tous les joeurs font 'un tour pour rien' afin de tirer leur cartes
 	for(indexJoueurActuel = 0 ; indexJoueurActuel < joueurs.size() ; indexJoueurActuel++)
 	{
+	    tirerCarteTirage();
 	    tirerCarteTirage();
 	}
 	indexJoueurActuel = 0;
@@ -300,7 +309,6 @@ public class Controleur implements Observer{
     }
     
     
-    
 	public boolean isPerdu()
 	{
 	    if(
@@ -331,14 +339,12 @@ public class Controleur implements Observer{
 		i++;
 	    }
 	    
-	    if(isGagne() && grille.chercherTuile("Héliport").getAventuriers().size() >= 4)
+	    if(tresorOK && grille.chercherTuile("Héliport").getAventuriers().size() >= 4)
 	    {
 		vuePlateau.afficher(false);
 		return true;
 	    }
 	    else return false;
-	    
-	    
 	}
 		
 	public void actionsPossibles()
@@ -437,88 +443,95 @@ public class Controleur implements Observer{
     @Override
     public void update(Observable VueAventurier, Object action)
     {
-	MessagePlateau message = (MessagePlateau)action;
 	
-	switch(message.getCommande())
+	if(action.getClass() == MessagePlateau.class)
 	{
-	    case DEPLACER:
-		showDeplacementPossible();
-		break;
-		
-	    case ASSECHER:
-		showAssechementPossible();
-		break;
-		
-	    case DONNER:
-		//donnerCarte();
-		nbAction--;
-		break;
-		
-	    case RECUPERER_TRESOR:
-		gagnerTresor();
-		vuePlateau.setEnableButton_gagnerTresor(false);
-		nbAction--;
-		break;
-		
-	    case TERMINER:
-		nbAction = 0;
-		break;
-		
-	    case VOIR_DEFAUSSE_TIRAGE:
-		break;
-		
-	    case VOIR_DEFAUSSE_MEAUX:
-		break;
-		
-	    case CHOISIR_TUILE:
-		Tuile tuileChoix = (Tuile)ObjetIdentifie.getFromId(message.getIdTuile());
-		switch(lastCmd)
-		{
-		    case DEPLACER:
-			if(seDeplacer(tuileChoix))
-			{
-			    isGagne();
-			    nbAction--;
-			    actionsPossibles();
-			}
-			resetIHM();
-			break;
-		    case ASSECHER:
-			if(assecherTuile(tuileChoix))
-			{
-			    nbAction--;
-			    isAssechementPossible();
-			    if(getJActuel().getRole() == Role.INGENIEUR)
+	    MessagePlateau message = (MessagePlateau)action;
+
+	    switch(message.getCommande())
+	    {
+		case DEPLACER:
+		    showDeplacementPossible();
+		    break;
+
+		case ASSECHER:
+		    showAssechementPossible();
+		    break;
+
+		case DONNER:
+		    //donnerCarte();
+		    nbAction--;
+		    break;
+
+		case RECUPERER_TRESOR:
+		    gagnerTresor();
+		    vuePlateau.setEnableButton_gagnerTresor(false);
+		    nbAction--;
+		    break;
+
+		case TERMINER:
+		    nbAction = 0;
+		    break;
+
+		case VOIR_DEFAUSSE_TIRAGE:
+		    break;
+
+		case VOIR_DEFAUSSE_MEAUX:
+		    break;
+
+		case CHOISIR_TUILE:
+		    Tuile tuileChoix = (Tuile)ObjetIdentifie.getFromId(message.getIdTuile());
+		    switch(lastCmd)
+		    {
+			case DEPLACER:
+			    if(seDeplacer(tuileChoix))
 			    {
-				showAssechementPossible();
+				isGagne();
+				nbAction--;
+				actionsPossibles();
 			    }
-			    else resetIHM();
-			}
-			break;
-		    case CHOISIR_TUILE:
-			if(lastlastCmd == Commandes.ASSECHER && getJActuel().getRole() == Role.INGENIEUR)
-			{
-			    if(assecherTuile(tuileChoix)) isAssechementPossible();
-			}
-			resetIHM();
-			break;
-		    default:break;
-		}
-		break;
-		
-	    default:
-		
-		break;
+			    resetIHM();
+			    break;
+			case ASSECHER:
+			    if(assecherTuile(tuileChoix))
+			    {
+				nbAction--;
+				isAssechementPossible();
+				if(getJActuel().getRole() == Role.INGENIEUR)
+				{
+				    showAssechementPossible();
+				}
+				else resetIHM();
+			    }
+			    break;
+			case CHOISIR_TUILE:
+			    if(lastlastCmd == Commandes.ASSECHER && getJActuel().getRole() == Role.INGENIEUR)
+			    {
+				if(assecherTuile(tuileChoix)) isAssechementPossible();
+			    }
+			    resetIHM();
+			    break;
+			default:break;
+		    }
+		    break;
+		default:break;
+	    }
+
+	    if(nbAction <= 0)
+	    {
+		JoueurSuivant();
+	    }
+	    else
+	    {
+		lastlastCmd = lastCmd;
+		lastCmd = message.getCommande();
+	    }
 	}
-	
-	if(nbAction <= 0)
-        {
-            JoueurSuivant();
-        }
 	else
 	{
-	    lastlastCmd = lastCmd;
-	    lastCmd = message.getCommande();
+	    MessageInscription message = (MessageInscription)action;
+	    
+	    lancerPartie(message.getDifficulte(), message.getPseudos());
 	}
     }
 	
@@ -530,12 +543,13 @@ public class Controleur implements Observer{
 	tresors.add(new Tresor(TypeTresor.CALICE, grille.chercherTuile("Le palais de corail"), grille.chercherTuile("Le palais des marees")));
     }
 	
-    public void lancerPartie()
+    public void lancerPartie(int difficulte, ArrayList<String> pseudos)
     {
 	inscrireJoueurs();
 	initialiserCarte();
 	vuePlateau = new VuePlateau(grille);
 	vuePlateau.addObserver(this);
+	getJActuel().setDeplacementSpecialEffectue(false);
 	resetIHM();
     }
 
