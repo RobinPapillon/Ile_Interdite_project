@@ -16,7 +16,9 @@ public class Tresor
 	this.gagne = false;
 	this.emplacement = new Tuile[2];
 	this.emplacement[0] = emplacement1;
+	emplacement1.setTresor(this);
 	this.emplacement[1] = emplacement2;
+	emplacement2.setTresor(this);
     }
 
     public TypeTresor getType()

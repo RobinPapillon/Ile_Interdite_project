@@ -5,6 +5,7 @@
  */
 package ile_interdite.Vue;
 
+import ile_interdite.Controler.ObjetIdentifie;
 import ile_interdite.Plateau.Coordonnee;
 import ile_interdite.Plateau.Grille;
 import ile_interdite.Plateau.Tuile;
@@ -12,6 +13,7 @@ import ile_interdite.util.MessagePlateau;
 import ile_interdite.util.Utils;
 import ile_interdite.util.Utils.Commandes;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagLayout;
@@ -24,11 +26,13 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Observable;
 import java.util.Observer;
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
+import javax.swing.border.Border;
 
 /**
  *
@@ -65,59 +69,38 @@ public class VuePlateau extends Observable{
 	ArrayList<JButton> tuiles_tmp = new ArrayList<>();
 	
 	int i = 0;
-	for(i = 0 ; i < 2 ; i++)    panelPlateau.add(new JLabel(""));
-	for(i = i ; i < 4 ; i++)
-	{
-	    tuiles_tmp.add(new JButton("case "+ (i+1)));
-	    panelPlateau.add(tuiles_tmp.get(tuiles_tmp.size()-1));
-	}
-	for(i = i ; i < 7 ; i++)    panelPlateau.add(new JLabel(""));
-	for(i = i ; i < 11 ; i++)
-	{
-	    tuiles_tmp.add(new JButton("case "+ (i+1)));
-	    panelPlateau.add(tuiles_tmp.get(tuiles_tmp.size()-1));
-	}
-    /*  for(i = i ; i < 12 ; i++) */panelPlateau.add(new JLabel("")); i++;		// 1 seul élément donc pas de boucle, le '/* for(...) */' sert pour le visuel
-	for(i = i ; i < 24 ; i++)
-	{
-	    tuiles_tmp.add(new JButton("case "+ (i+1)));
-	    panelPlateau.add(tuiles_tmp.get(tuiles_tmp.size()-1));
-	}
-    /*  for(i = i ; i < 25 ; i++) */panelPlateau.add(new JLabel("")); i++;
-	for(i = i ; i < 29 ; i++)
-	{
-	    tuiles_tmp.add(new JButton("case "+ (i+1)));
-	    panelPlateau.add(tuiles_tmp.get(tuiles_tmp.size()-1));
-	}
-	for(i = i ; i < 32 ; i++)   panelPlateau.add(new JLabel(""));
-	for(i = i ; i < 34 ; i++)
-	{
-	    tuiles_tmp.add(new JButton("case "+ (i+1)));
-	    panelPlateau.add(tuiles_tmp.get(tuiles_tmp.size()-1));
-	}	    
-        for(i = i ; i < 36 ; i++)   panelPlateau.add(new JLabel(""));
-	
-	Iterator<Coordonnee> it = grille.getListeTuiles().keySet().iterator();
 	tuiles = new HashMap<>();
 	
-	for(JButton button : tuiles_tmp)
+	for(int y = 5 ; y >= 0 ; y--)
+	for(int x = 0 ; x < 6 ; x++)
 	{
-	    /*Tuile tuile = grille.getListeTuiles().get(it.next());
-	    int id = tuile.getId();*/
-	    int id = grille.getListeTuiles().get(it.next()).getId();
-	    tuiles.put(id, button);
+	    Tuile tuile = grille.getListeTuiles().get(new Coordonnee(x, y));
 	    
-	    button.addActionListener(new ActionListener()
+	    if(tuile == null)
 	    {
-		@Override
-		public void actionPerformed(ActionEvent e)
+		panelPlateau.add(new JLabel(""));
+		i++;
+	    }
+	    else
+	    {
+		Integer id = tuile.getId();
+		JButton button = new JButton("case "+ tuile.getCoordonnee().toString());
+		tuiles.put(id, button);
+		panelPlateau.add(button);
+		button.addActionListener(new ActionListener()
 		{
-		    setChanged();
-		    notifyObservers(new MessagePlateau(Commandes.CHOISIR_TUILE,null,null,null,id));
-		    clearChanged();
-		}
-	    });
+		    @Override
+		    public void actionPerformed(ActionEvent e)
+		    {
+			setChanged();
+			notifyObservers(new MessagePlateau(Commandes.CHOISIR_TUILE,null,null,null,id));
+			clearChanged();
+		    }
+		});
+	    }
 	}
+	
+	
 	
         // Pioches 
         JPanel panelPioches = new JPanel(new GridLayout(7,1));
@@ -269,12 +252,12 @@ public class VuePlateau extends Observable{
             
         }
          
-         this.afficher();
+         this.afficher(true);
     }
     
     
-    public void afficher() {
-           this.window.setVisible(true);
+    public void afficher(boolean b) {
+           this.window.setVisible(b);
     }
 
     public void setNbrCartePioche_meaux(int nbr)
@@ -307,9 +290,41 @@ public class VuePlateau extends Observable{
 	gagnerTresor.setEnabled(b);
     }
     
-    public void setEnableTuile(boolean b, Integer id)
+    public void setEnableTuile(Integer id, boolean b)
     {
 	tuiles.get(id).setEnabled(b);
+    }
+    
+    public void setBackgroundTuile(Integer id, Color color)
+    {
+	tuiles.get(id).setBackground(color);
+    }
+    
+    public void setBorderTuile(Integer id, Color color)
+    {
+	tuiles.get(id).setBorder(BorderFactory.createLineBorder(color));
+    }
+    
+    public void setDefaultTuile(Integer id)
+    {
+	Tuile t = (Tuile)ObjetIdentifie.getFromId(id);
+	JButton button = tuiles.get(id);
+	
+	button.setBorder(BorderFactory.createLineBorder(Color.gray));
+	button.setLabel(t.getLabel());
+	button.setEnabled(true);
+	button.setBackground(null);
+	
+	switch(t.getEtat())
+	{
+	    case RETIREE:
+		button.setEnabled(false);
+		break;
+	    case INONDEE:
+		button.setBackground(Color.CYAN);
+		break;
+	    default:break;
+	}
     }
 	    
 	    

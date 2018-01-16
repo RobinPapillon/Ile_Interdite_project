@@ -2,6 +2,7 @@ package ile_interdite.Plateau;
 
 import ile_interdite.Aventurier.Aventurier;
 import ile_interdite.Controler.ObjetIdentifie;
+import ile_interdite.Tresor.Tresor;
 import ile_interdite.util.Utils.EtatTuile;
 import java.util.HashSet;
 
@@ -10,6 +11,7 @@ public class Tuile extends ObjetIdentifie{
 	private EtatTuile etat;
 	private String nom;
 	private Coordonnee coordonnee;
+	private Tresor tresor;
 
     public Tuile(String nom, Coordonnee coordonnee) {
 	
@@ -17,6 +19,13 @@ public class Tuile extends ObjetIdentifie{
         this.nom = nom;
         this.coordonnee = coordonnee;
 	this.etat = EtatTuile.ASSECHEE;
+	this.tresor = null;
+    }
+    
+    public void monteeDesEaux()
+    {
+	if(etat == EtatTuile.ASSECHEE)	etat = EtatTuile.INONDEE;
+	else				etat = EtatTuile.RETIREE;
     }
 
 	public void addJoueur(Aventurier av)
@@ -59,6 +68,31 @@ public class Tuile extends ObjetIdentifie{
 
     public void setCoordonnee(Coordonnee coordonnee) {
         this.coordonnee = coordonnee;
+    }
+    
+    public String getLabel()
+    {
+	String label = "<html>" + nom + "<br>";
+	if(tresor != null) label += "(" + tresor.getType() + ")<br>";
+	for(Aventurier av : aventuriers) label += "{" + av.getNomJoueur() + "}<br>";
+	
+	return label + "</html>";
+    }
+
+    /**
+     * @return the tresor
+     */
+    public Tresor getTresor()
+    {
+	return tresor;
+    }
+
+    /**
+     * @param tresor the tresor to set
+     */
+    public void setTresor(Tresor tresor)
+    {
+	this.tresor = tresor;
     }
         
 }

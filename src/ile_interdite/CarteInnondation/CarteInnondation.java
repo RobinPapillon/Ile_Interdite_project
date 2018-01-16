@@ -4,8 +4,13 @@ import ile_interdite.Plateau.Tuile;
 
 public class CarteInnondation
 {
-    private Tuile tuile;
+    private final Tuile tuile;
 
+    public CarteInnondation(Tuile tuile)
+    {
+	this.tuile = tuile;
+    }
+    
     /**
      * @return the tuile
      */
@@ -13,14 +18,4 @@ public class CarteInnondation
     {
 	return tuile;
     }
-
-    /**
-     * @param tuile the tuile to set
-     */
-    public void setTuile(Tuile tuile)
-    {
-	this.tuile = tuile;
-    }
-    
-    
 }

@@ -6,6 +6,9 @@ import ile_interdite.Plateau.Tuile;
 import ile_interdite.Plateau.Grille;
 import ile_interdite.Vue.VueAventurier;
 import ile_interdite.Aventurier.*;
+import ile_interdite.CarteTirage.CarteHelico;
+import ile_interdite.CarteTirage.CarteMEaux;
+import ile_interdite.CarteTirage.CarteSable;
 import ile_interdite.CarteTirage.CarteTresor;
 import ile_interdite.CarteTirage.TypeCarte;
 import ile_interdite.Tresor.Tresor;
@@ -13,11 +16,14 @@ import ile_interdite.util.Utils.EtatTuile;
 import ile_interdite.util.Utils.Role;
 import ile_interdite.util.Utils.Commandes;
 import ile_interdite.CarteTirage.TypeTresor;
+import ile_interdite.Plateau.Coordonnee;
 import ile_interdite.Vue.VuePlateau;
 import ile_interdite.util.MessagePlateau;
+import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.Scanner;
@@ -37,7 +43,8 @@ public class Controleur implements Observer{
 	private final static int[] nbCarteMonteeEau_ATirer = {2,2,3,3,3,4,4,5,5,6};
 	private int niveauEau;
         private ArrayList<Tresor> tresors;
-	private MessagePlateau lastMessage;
+	private Commandes lastCmd;
+	private Commandes lastlastCmd;
 
         public Controleur()
 	{
@@ -53,154 +60,118 @@ public class Controleur implements Observer{
 	    niveauEau = 0;
 	    tresors = new ArrayList<>();
 	    initTresor();
-	    lastMessage = null;
+	    lastCmd = Commandes.TERMINER;
+	    lastlastCmd = Commandes.TERMINER;
 	}
-            
-	public void seDeplacer() {
-	    Aventurier avActuel = joueurs.get(indexJoueurActuel);
-	    HashSet deplacementsNormaux = grille.getOrt(avActuel.getPosition());		    // Collection de tuile qui sont accessibles par un deplacement 'normal'
+        
+	public void showDeplacementPossible()
+	{
+	    resetIHM();
+	    
+	    Aventurier avActuel = getJActuel();
+	    HashSet<Tuile> deplacementsNormaux = grille.getOrt(avActuel.getPosition());		    // Collection de tuile qui sont accessibles par un deplacement 'normal'
+	    HashSet<Tuile> tuilesDeplacement = avActuel.getDeplacementsPossibles(this.grille);	    // Collection de tuiles accessibles par l'aventurier
+
+	    for(Tuile tui : tuilesDeplacement)
+	    { 
+		if(deplacementsNormaux.contains(tui))	// Affiche si la tuile est un déplacement 'normal' si le pilote n'a pas utilisé son action spéciale
+		{
+		    vuePlateau.setBorderTuile(tui.getId(), Color.GREEN);
+		}
+		else
+		{
+		    vuePlateau.setBorderTuile(tui.getId(), Color.MAGENTA);
+		}
+	    }
+	}
+	
+	public boolean seDeplacer(Tuile tuileFin) {
+	    Aventurier avActuel = getJActuel();
+	    HashSet<Tuile> deplacementsNormaux = grille.getOrt(avActuel.getPosition());		    // Collection de tuile qui sont accessibles par un deplacement 'normal'
 	    HashSet<Tuile> tuilesDeplacement = avActuel.getDeplacementsPossibles(this.grille);	    // Collection de tuiles accessibles par l'aventurier
 	    
-	    System.out.println("\n------\nBOUGER");
-	    
-	    if(tuilesDeplacement.isEmpty())							    // Si aucune tuile n'est accessible
+	    if(tuilesDeplacement.contains(tuileFin))
 	    {
-		System.out.println("(" + nbAction + " actions restantes)");
-		System.out.println("Vous ne pouvez pas vous déplacer.");
-		nbAction++;									    //Annulation de l'action
-	    }
-	    else
-	    {
-		System.out.println("(" + (nbAction-1) + " actions restantes)");
-		System.out.println("\nVous êtes sur la tuile '" + avActuel.getPosition().getNom() + "' : " + avActuel.getPosition().getCoordonnee().toString());
-		
-		System.out.println("Tuiles accessibles :");
-		for(Tuile tui : tuilesDeplacement){ 
-		    System.out.print("\t'" + tui.getNom() + "' : " + tui.getCoordonnee().toString());
-		    if(deplacementsNormaux.contains(tui) && !avActuel.getDeplacementSpecialEffectue())	// Affiche si la tuile est un déplacement 'normal' si le pilote n'a pas utilisé son action spéciale
-		    {
-			System.out.println(" [Déplacement de base]");
-		    }
-		    else System.out.println();
-		}
-
-		Scanner sc = new Scanner(System.in);
-		String nomtuile;
-		Tuile tuiletemp ;
-
-		do{											// Saisie & verification de la validité de la tuile
-		    System.out.print("nom := ");
-		    nomtuile = sc.nextLine();
-		    tuiletemp=this.grille.chercherTuile(nomtuile);
-		}
-		while (tuiletemp==null || ! tuilesDeplacement.contains(tuiletemp));
-
-		System.out.println(" Vous vous êtes déplacés sur la tuile : '" +tuiletemp.getNom() + "'");
-
 		avActuel.getPosition().rmJoueur(avActuel);						// retirer le joueur de sa tuile actuelle
-		avActuel.setPosition(tuiletemp);							// le mettre sur la nouvelle tuile
-		tuiletemp.addJoueur(avActuel);								// ajouter le joueur à la nouvelle tuile
+		avActuel.setPosition(tuileFin);								// le mettre sur la nouvelle tuile
+		tuileFin.addJoueur(avActuel);								// ajouter le joueur à la nouvelle tuile
 		 
 		if(!avActuel.getDeplacementSpecialEffectue())						// Si le joueur est un pilote et qu'il a effectué son deplacement special, il ne pourra plus l'utiliser avant son prochain tour
 		{
-		    if(!deplacementsNormaux.contains(tuiletemp))
+		    if(!deplacementsNormaux.contains(tuileFin))
 		    {
 			avActuel.setDeplacementSpecialEffectue(true);
 		    }
-		} 
+		}
+		
+		return true;
 	    }
+	    else return false;
+	    
 	}
 
 	public void JoueurSuivant()
         {
-		if(indexJoueurActuel < joueurs.size()-1)    indexJoueurActuel++;
-                else					    indexJoueurActuel = 0;
-		getJActuel().setDeplacementSpecialEffectue(false);	// Remet à jour l'action spéciale du pilote
-		actionsPossibles();
+	    if(indexJoueurActuel < joueurs.size()-1)    indexJoueurActuel++;
+            else					    indexJoueurActuel = 0;
+	    
+	    getJActuel().setDeplacementSpecialEffectue(false);	// Remet à jour l'action spéciale du pilote
+	    actionsPossibles();
+	    lastCmd = Commandes.NOP;
+	    lastlastCmd = Commandes.NOP;
+            nbAction = 3;
+	    
+	    tirerCarteTirage();
+	    tirerCarteTirage();
+	    
+	    for(int i = 0 ; i < nbCarteMonteeEau_ATirer[niveauEau] ; i++) tirerCarteInnondation();
+	    
+	    isPerdu();
+	    
+	    resetIHM();
 	}
 
-	public void assecherTuile()
+	public void showAssechementPossible()
 	{
-		HashSet<Tuile> collecTuile = joueurs.get(indexJoueurActuel).tuilesAssechables(grille);	// Collection des tuiles assechables
+	    resetIHM();
+	    
+	    Aventurier avActuel = getJActuel();
+	    HashSet<Tuile> collecTuile = avActuel.tuilesAssechables(grille);	// Collection des tuiles assechables
+	    
+	    for(Tuile tuile : collecTuile)
+            {
+                vuePlateau.setBorderTuile(tuile.getId(), Color.YELLOW);
+            }
 		
-                System.out.println("\n------\nASSECHER");
-                
-                if(collecTuile.isEmpty())								// S'il n'y a rien a assecher
-                {
-		    System.out.println("(" + nbAction + " actions restantes)");
-                    System.out.println("Aucune tuile à assecher.");
-                    nbAction++;										// Annulation de l'action
-		    
-                }
-                else
-                {
-		    System.out.println("(" + (nbAction-1) + " actions restantes)");
-		    assecherTuile_ChercherEtAction(collecTuile);					// Lance le processus de saisie et d'assechement de la tuile
-		    
-		    if(joueurs.get(indexJoueurActuel).getRole().equals(Role.INGENIEUR))
-		    {
-			collecTuile = joueurs.get(indexJoueurActuel).tuilesAssechables(grille);		// MàJ des tuiles assechables
-			if(!collecTuile.isEmpty())							// S'il n'y a rien a assecher
-			{
-			    Scanner sc = new Scanner(System.in);
-			    String choix;
-
-			    System.out.println("Voulez-vous assecher une autre tuile ? (o/n)");
-			    choix = sc.nextLine();
-			    if(choix.equals("o")) assecherTuile_ChercherEtAction(collecTuile);		// Processus de saisie et d'assechement de la 2nd tuile
-			}
-		    }
-		}
 	}
 	
-	/**
-	 * Processus de saisie et d'assechement de la tuile.
-	 * 
-	 * @param collecTuile 
-	 *  les tuiles qui sont assechable par le joueur
-	 */
-	private void assecherTuile_ChercherEtAction(HashSet<Tuile> collecTuile) 
+	public boolean assecherTuile(Tuile tuileFin)
 	{
-	    Aventurier avActuel = joueurs.get(indexJoueurActuel);
-	    Scanner sc = new Scanner(System.in);
-            String nom;
-            Tuile choixTuile;
+	    Aventurier avActuel = getJActuel();
+	    HashSet<Tuile> collecTuile = avActuel.tuilesAssechables(grille);	// Collection des tuiles assechables
 	    
-            System.out.println("\nVous êtes sur la tuile '" + avActuel.getPosition().getNom() + "' : " + avActuel.getPosition().getCoordonnee().toString());
-	    System.out.println("\nVous pouvez assecher:");
-
-            for(Tuile tuile : collecTuile)
-            {
-		
-                System.out.println("\t'" + tuile.getNom() + "' : " + tuile.getCoordonnee().toString());
-            }
-
-            do
-            {
-                System.out.println("\nNom de la tuile à assecher := ");
-                nom = sc.nextLine();
-                choixTuile = grille.chercherTuile(nom);  
-            }
-            while(choixTuile == null || !collecTuile.contains(choixTuile));
-                    
-            choixTuile.setEtat(EtatTuile.ASSECHEE);
-            System.out.println("Tuile assechee.");
+	    if(collecTuile.contains(tuileFin))
+	    {
+		tuileFin.setEtat(EtatTuile.ASSECHEE);
+		return true;
+	    }
+	    else return false;
 	}
 	
 	public void inscrireJoueurs()
 	{
 	    //Joueurs predefini
-	    joueurs.add(new Explorateur("Indiana Jones"));
 	    joueurs.add(new Ingenieur("R2D2"));
+	    joueurs.add(new Pilote("Foehammer"));
+	    joueurs.add(new Explorateur("Indiana Jones"));
 	    //joueurs.add(new Messager("Radar"));
 	    //joueurs.add(new Navigateur("Cousteau"));
-	    joueurs.add(new Pilote("Foehammer"));
-	    joueurs.add(new Plongeur("Yellow submarine"));
+	    //joueurs.add(new Plongeur("Yellow submarine"));
 	    
 	    joueurs.get(0).placerAventurier(grille);
 	    joueurs.get(1).placerAventurier(grille);
 	    joueurs.get(2).placerAventurier(grille);
-	    joueurs.get(3).placerAventurier(grille);
+//	    joueurs.get(3).placerAventurier(grille);
 	    
 	    /*
 	    HashSet<Role> rolesDispo = new HashSet<>();
@@ -241,36 +212,133 @@ public class Controleur implements Observer{
 	    */
 	}
 	
-	public void tirerCarte()
+	
+    public void initialiserCarte()
+    {
+	/* INNONDATION */
+	Iterator it = grille.getListeTuiles().keySet().iterator();
+	
+	while(it.hasNext())
 	{
-	    CarteTirage carte = piocheCT.get(0);
-	    piocheCT.remove(0);
-	    defausseCT.add(carte);
+	    Coordonnee clef = (Coordonnee)it.next();
+	    Tuile tuile = grille.getListeTuiles().get(clef);
 	    
-	    if(carte.getType() != TypeCarte.MEAUX)
-	    {
-		getJActuel().addInventaire(carte);
-	    }
-	    else
+	    piocheCI.add(new CarteInnondation(tuile));
+	}
+	Collections.shuffle(piocheCI);
+	
+	/* TIRAGE */
+	// On ajoute a la pioche toutes les cartes que peuvent avoir en debut de jeu les joueurs
+	for(Tresor tresor : tresors) for(int i = 0 ; i < 5 ; i++) piocheCT.add(new CarteTresor(tresor));
+	for(int i = 0 ; i < 3 ; i++) piocheCT.add(new CarteHelico());
+	for(int i = 0 ; i < 2 ; i++) piocheCT.add(new CarteSable());
+	Collections.shuffle(piocheCT);
+	
+	// tous les joeurs font 'un tour pour rien' afin de tirer leur cartes
+	for(indexJoueurActuel = 0 ; indexJoueurActuel < joueurs.size() ; indexJoueurActuel++)
+	{
+	    tirerCarteTirage();
+	}
+	indexJoueurActuel = 0;
+	
+	// On fini de constituer la pioche
+	for(int i = 0 ; i < 3 ; i++) piocheCT.add(new CarteMEaux());
+	Collections.shuffle(piocheCT);
+    }
+	
+    public void tirerCarteTirage()
+    {
+	if(!piocheCT.isEmpty())
+	{
+	    CarteTirage carte = piocheCT.get(piocheCT.size()-1);
+	    piocheCT.remove(carte);
+	    defausseCT.add(carte);
+
+	    if(carte.getType() == TypeCarte.MEAUX)
 	    {
 		niveauEau++;
-		for(CarteInnondation c : defausseCI) piocheCI.add(c);
+
+		Collections.shuffle(defausseCI);
+		piocheCI.addAll(defausseCI);
 		defausseCI.clear();
-		Collections.shuffle(piocheCI);
+		
+		piocheCT.remove(carte);
+		defausseCT.add(carte);
+	    }
+	    else if(!getJActuel().isMainPleine())
+	    {
+		piocheCT.remove(carte);
+		defausseCT.add(carte);
 	    }
 	}
-	
-	public boolean isFinJeu()
+	else
 	{
-	    return  niveauEau > 9 ||
+	    piocheCT.addAll(defausseCT);
+	    defausseCT.clear();
+	    Collections.shuffle(piocheCT);
+	    tirerCarteTirage();
+	}
+    }
+
+    public void tirerCarteInnondation()
+    {
+	if(!piocheCI.isEmpty())
+	{
+	    CarteInnondation carte = piocheCI.get(piocheCI.size()-1);
+	    piocheCI.remove(carte);
+	    
+	    carte.getTuile().monteeDesEaux();
+	    if(carte.getTuile().getEtat() != EtatTuile.RETIREE) defausseCI.add(carte);
+	}
+	else
+	{
+	    piocheCI.addAll(defausseCI);
+	    defausseCI.clear();
+	    Collections.shuffle(piocheCI);
+	    tirerCarteInnondation();
+	}
+    }
+    
+    
+    
+	public boolean isPerdu()
+	{
+	    if(
+		    niveauEau > 9 ||
 		    // si le niveau de l'eau est trop haut
                     grille.chercherTuile("Héliport").getEtat() == EtatTuile.RETIREE ||
 		    // Si l'héliport à sombré
 		    (tresors.get(0).getEmplacement()[0].getEtat() == EtatTuile.RETIREE && tresors.get(0).getEmplacement()[1].getEtat() == EtatTuile.RETIREE) ||
 		    (tresors.get(1).getEmplacement()[0].getEtat() == EtatTuile.RETIREE && tresors.get(1).getEmplacement()[1].getEtat() == EtatTuile.RETIREE) ||
 		    (tresors.get(2).getEmplacement()[0].getEtat() == EtatTuile.RETIREE && tresors.get(2).getEmplacement()[1].getEtat() == EtatTuile.RETIREE) ||
-		    (tresors.get(3).getEmplacement()[0].getEtat() == EtatTuile.RETIREE && tresors.get(3).getEmplacement()[1].getEtat() == EtatTuile.RETIREE);  
+		    (tresors.get(3).getEmplacement()[0].getEtat() == EtatTuile.RETIREE && tresors.get(3).getEmplacement()[1].getEtat() == EtatTuile.RETIREE) )
+	    {
+		vuePlateau.afficher(false);
+		return true;
+	    }
+	    else return false;
 		    // Si les emplacements d'un des trésor est englouti
+	}
+	
+	public boolean isGagne()
+	{
+	    boolean tresorOK = true;
+	    int i = 0;
+	    
+	    while( i < tresors.size() && tresorOK)
+	    {
+		tresorOK = tresors.get(i).isGagne();
+		i++;
+	    }
+	    
+	    if(isGagne() && grille.chercherTuile("Héliport").getAventuriers().size() >= 4)
+	    {
+		vuePlateau.afficher(false);
+		return true;
+	    }
+	    else return false;
+	    
+	    
 	}
 		
 	public void actionsPossibles()
@@ -333,16 +401,9 @@ public class Controleur implements Observer{
 	    return surLaTuile;
 	}
 	
-	public void donnerCarte()
+	public void donnerCarte(Aventurier avChoisi, CarteTresor carte)
 	{
 	    HashSet<Aventurier> aventuriers = getJActuel().donnerCarte(joueurs);
-	    
-	    // MàJ IHM -> selection
-	    Aventurier avChoisi/* -> l'aventurier choisi*/ = new Pilote(""); // Le new est juste là pour ne pas tout planter
-	    
-	    // MàJ IHM -> selection
-	    CarteTresor carte/* -> la carte choisie */ = new CarteTresor(tresors.get(0)); // idem
-	    
 	    if(aventuriers.contains(avChoisi))
 	    {
 		getJActuel().rmInventaire(carte);
@@ -353,30 +414,43 @@ public class Controleur implements Observer{
 	
     private void gagnerTresor()
     {
-	throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+	getJActuel().getPosition().getTresor().setGagne(true);
+    }
+    
+    private void resetIHM()
+    {
+	Iterator it = grille.getListeTuiles().keySet().iterator();
+	Tuile t;
+	Coordonnee c;
+	
+	while(it.hasNext())
+	{
+	    c = (Coordonnee)it.next();
+	    t = (Tuile)grille.getListeTuiles().get(c);
+	    
+	    vuePlateau.setDefaultTuile(t.getId());
+	}
+	
+	vuePlateau.setBorderTuile(getJActuel().getPosition().getId(), Color.RED);
     }
     
     @Override
     public void update(Observable VueAventurier, Object action)
     {
 	MessagePlateau message = (MessagePlateau)action;
-
+	
 	switch(message.getCommande())
 	{
 	    case DEPLACER:
-		seDeplacer();
-		nbAction--;
-		actionsPossibles();
+		showDeplacementPossible();
 		break;
 		
 	    case ASSECHER:
-		assecherTuile();
-		nbAction--;
-		isAssechementPossible();
+		showAssechementPossible();
 		break;
 		
 	    case DONNER:
-		donnerCarte();
+		//donnerCarte();
 		nbAction--;
 		break;
 		
@@ -396,34 +470,73 @@ public class Controleur implements Observer{
 	    case VOIR_DEFAUSSE_MEAUX:
 		break;
 		
+	    case CHOISIR_TUILE:
+		Tuile tuileChoix = (Tuile)ObjetIdentifie.getFromId(message.getIdTuile());
+		switch(lastCmd)
+		{
+		    case DEPLACER:
+			if(seDeplacer(tuileChoix))
+			{
+			    isGagne();
+			    nbAction--;
+			    actionsPossibles();
+			}
+			resetIHM();
+			break;
+		    case ASSECHER:
+			if(assecherTuile(tuileChoix))
+			{
+			    nbAction--;
+			    isAssechementPossible();
+			    if(getJActuel().getRole() == Role.INGENIEUR)
+			    {
+				showAssechementPossible();
+			    }
+			    else resetIHM();
+			}
+			break;
+		    case CHOISIR_TUILE:
+			if(lastlastCmd == Commandes.ASSECHER && getJActuel().getRole() == Role.INGENIEUR)
+			{
+			    if(assecherTuile(tuileChoix)) isAssechementPossible();
+			}
+			resetIHM();
+			break;
+		    default:break;
+		}
+		break;
+		
 	    default:
-		System.out.println("DEFAULT");
+		
 		break;
 	}
 	
 	if(nbAction <= 0)
         {
             JoueurSuivant();
-            nbAction = 3;
         }
-	
-	lastMessage = message;
+	else
+	{
+	    lastlastCmd = lastCmd;
+	    lastCmd = message.getCommande();
+	}
     }
 	
     public void initTresor()
-	{
-	    tresors.add(new Tresor(TypeTresor.PIERRE, grille.chercherTuile("Le temple de la lune"), grille.chercherTuile("Le temple du soleil")));
-	    tresors.add(new Tresor(TypeTresor.ZEPHYR, grille.chercherTuile("Le jardin des hurlements"), grille.chercherTuile("Le jardin des murmures")));
-	    tresors.add(new Tresor(TypeTresor.CRISTAL, grille.chercherTuile("La caverne des ombres"), grille.chercherTuile("La caverne du brasier")));
-	    tresors.add(new Tresor(TypeTresor.CALICE, grille.chercherTuile("Le palais de corail"), grille.chercherTuile("Le palais des marees")));
-	}
+    {
+	tresors.add(new Tresor(TypeTresor.PIERRE, grille.chercherTuile("Le temple de la lune"), grille.chercherTuile("Le temple du soleil")));
+	tresors.add(new Tresor(TypeTresor.ZEPHYR, grille.chercherTuile("Le jardin des hurlements"), grille.chercherTuile("Le jardin des murmures")));
+	tresors.add(new Tresor(TypeTresor.CRISTAL, grille.chercherTuile("La caverne des ombres"), grille.chercherTuile("La caverne du brasier")));
+	tresors.add(new Tresor(TypeTresor.CALICE, grille.chercherTuile("Le palais de corail"), grille.chercherTuile("Le palais des marees")));
+    }
 	
     public void lancerPartie()
     {
 	inscrireJoueurs();
+	initialiserCarte();
 	vuePlateau = new VuePlateau(grille);
 	vuePlateau.addObserver(this);
-	actionsPossibles();
+	resetIHM();
     }
 
     public Grille getGrille()

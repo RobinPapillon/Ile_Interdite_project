@@ -102,7 +102,9 @@ public abstract class Aventurier {
 
     public HashSet<Aventurier> donnerCarte(ArrayList<Aventurier> joueurs)
     {
-	HashSet<Aventurier> aventuriers = getPosition().getAventuriers();
+	HashSet<Aventurier> aventuriers = new HashSet<>();
+	
+	aventuriers.addAll(getPosition().getAventuriers());
 	aventuriers.remove(this);
 	
 	// Si la main de l'aventurier est pleine
@@ -131,7 +133,7 @@ public abstract class Aventurier {
 	return count;
     }
 
-    private boolean isMainPleine()
+    public boolean isMainPleine()
     {
 	return inventaire.size() >= 9;
     }
