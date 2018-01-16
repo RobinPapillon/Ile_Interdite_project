@@ -1,8 +1,9 @@
 package ile_interdite.CarteTirage;
 
 import ile_interdite.Aventurier.Aventurier;
+import ile_interdite.Controler.ObjetIdentifie;
 
-public abstract class CarteTirage
+public abstract class CarteTirage extends ObjetIdentifie
 {
     private Aventurier possesseur;
     

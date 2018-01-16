@@ -172,6 +172,7 @@ private JFrame window;
             diff2.add(centerDiff2,BorderLayout.CENTER);
                     // centre
                     radioButton = new JRadioButton("Normal");
+		    radioButton.setSelected(true);
                     centerDiff2.setLayout(new FlowLayout(0));
                     radiobuttons.put(radiobuttons.size(), radioButton);
                     centerDiff2.add(radioButton);
@@ -228,13 +229,12 @@ private JFrame window;
                 setChanged();
                 for (Integer i : radiobuttons.keySet()){
                 	if (radiobuttons.get(i).isSelected()){
-                	 difficulte = radiobuttons.keySet().size()-i;
+                	 difficulte = radiobuttons.keySet().size()-i-1;
                 	}
                 }
                 System.out.println("difficulté : " + difficulte);
                 for (int i=0 ; i<jChoice.getSelectedIndex()+2 ;i++){
                 	pseudos.add(textPseudos.get(i).getText());
-                	System.out.println(pseudos.get(i));
                 }
                 notifyObservers(new MessageInscription(Commandes.INSCRIPTION,difficulte,pseudos));
                 clearChanged();
@@ -277,5 +277,10 @@ private JFrame window;
     {
 	VueInscription vue = new VueInscription();
 	
+    }
+
+    public JFrame getWindow()
+    {
+	return window;
     }
 }

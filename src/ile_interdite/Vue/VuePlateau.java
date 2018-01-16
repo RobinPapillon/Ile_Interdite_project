@@ -333,4 +333,9 @@ public class VuePlateau extends Observable{
 	Grille g = new Grille();
 	VuePlateau vue = new VuePlateau(g);
     }
+
+    public JFrame getWindow()
+    {
+	return window;
+    }
 }

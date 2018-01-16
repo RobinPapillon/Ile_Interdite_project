@@ -4,6 +4,7 @@ import ile_interdite.CarteTirage.CarteTirage;
 import ile_interdite.CarteTirage.CarteTresor;
 import ile_interdite.CarteTirage.TypeCarte;
 import ile_interdite.CarteTirage.TypeTresor;
+import ile_interdite.Controler.ObjetIdentifie;
 import ile_interdite.Plateau.Tuile;
 import ile_interdite.Plateau.Grille;
 import ile_interdite.util.Utils.Pion;
@@ -11,7 +12,7 @@ import ile_interdite.util.Utils.Role;
 import java.util.ArrayList;
 import java.util.HashSet;
 
-public abstract class Aventurier {
+public abstract class Aventurier extends ObjetIdentifie{
 
 	private String nomJoueur;
         private Tuile position;	// Position de l'aventurier

@@ -4,7 +4,6 @@ import ile_interdite.CarteInnondation.CarteInnondation;
 import ile_interdite.CarteTirage.CarteTirage;
 import ile_interdite.Plateau.Tuile;
 import ile_interdite.Plateau.Grille;
-import ile_interdite.Vue.VueAventurier;
 import ile_interdite.Aventurier.*;
 import ile_interdite.CarteTirage.CarteHelico;
 import ile_interdite.CarteTirage.CarteMEaux;
@@ -18,6 +17,7 @@ import ile_interdite.util.Utils.Commandes;
 import ile_interdite.CarteTirage.TypeTresor;
 import ile_interdite.Plateau.Coordonnee;
 import ile_interdite.Vue.VueInscription;
+import ile_interdite.Vue.VueJoueurCarte;
 import ile_interdite.Vue.VuePlateau;
 import ile_interdite.util.MessageInscription;
 import ile_interdite.util.MessagePlateau;
@@ -36,6 +36,7 @@ public class Controleur implements Observer{
 	private Grille grille;
 	private VuePlateau vuePlateau;
 	private VueInscription vueInscription;
+	private VueJoueurCarte vueJoueurCarte;
 	private ArrayList<Aventurier> joueurs;	// La liste des aventurier en jeu
         private int indexJoueurActuel;
 	private int nbAction;			// Le nombre d'actions disponible pour un tour
@@ -46,8 +47,8 @@ public class Controleur implements Observer{
 	private final static int[] nbCarteMonteeEau_ATirer = {2,2,3,3,3,4,4,5,5,6};
 	private int niveauEau;
         private ArrayList<Tresor> tresors;
-	private Commandes lastCmd;
-	private Commandes lastlastCmd;
+	private MessagePlateau lastMsg;
+	private MessagePlateau lastLastMsg;
 
         public Controleur()
 	{
@@ -63,8 +64,8 @@ public class Controleur implements Observer{
 	    niveauEau = 0;
 	    tresors = new ArrayList<>();
 	    initTresor();
-	    lastCmd = Commandes.TERMINER;
-	    lastlastCmd = Commandes.TERMINER;
+	    lastMsg = new MessagePlateau(Commandes.NOP, null, null, null, null);;
+	    lastLastMsg = new MessagePlateau(Commandes.NOP, null, null, null, null);;
 	    
 	    vueInscription = new VueInscription();
 	    vueInscription.addObserver(this);
@@ -118,13 +119,20 @@ public class Controleur implements Observer{
 
 	public void JoueurSuivant()
         {
+	    if(!getJActuel().isMainPleine())
+	    {
+		tirerCarteTirage();
+		if(!getJActuel().isMainPleine()) tirerCarteTirage();
+		vueJoueurCarte.mettreAJour();
+	    }
+	    
 	    if(indexJoueurActuel < joueurs.size()-1)    indexJoueurActuel++;
-            else					    indexJoueurActuel = 0;
+            else					indexJoueurActuel = 0;
 	    
 	    getJActuel().setDeplacementSpecialEffectue(false);	// Remet à jour l'action spéciale du pilote
 	    actionsPossibles();
-	    lastCmd = Commandes.NOP;
-	    lastlastCmd = Commandes.NOP;
+	    lastMsg = new MessagePlateau(Commandes.NOP, null, null, null, null);
+	    lastLastMsg = new MessagePlateau(Commandes.NOP, null, null, null, null);
             nbAction = 3;
 	    
 	    tirerCarteTirage();
@@ -164,8 +172,9 @@ public class Controleur implements Observer{
 	    else return false;
 	}
 	
-	public void inscrireJoueurs()
+	public void inscrireJoueurs(ArrayList<String> pseudos)
 	{
+	    /*
 	    //Joueurs predefini
 	    //joueurs.add(new Ingenieur("R2D2"));
 	    joueurs.add(new Pilote("Foehammer"));
@@ -177,45 +186,28 @@ public class Controleur implements Observer{
 	    joueurs.get(0).placerAventurier(grille);
 	    //joueurs.get(1).placerAventurier(grille);
 	    //joueurs.get(2).placerAventurier(grille);
-//	    joueurs.get(3).placerAventurier(grille);
+	    //joueurs.get(3).placerAventurier(grille);
+	    */
 	    
-	    /*
-	    HashSet<Role> rolesDispo = new HashSet<>();
-	    Scanner sc = new Scanner(System.in);
-	    String nom, choix;
+	    ArrayList<Role> rolesDispo = new ArrayList<>();
 	    Tuile tuileDepart;
 	    
-	    int nbrJoueur = 4;
-	    
 	    for(Role role : Role.values()) rolesDispo.add(role);
+	    Collections.shuffle(rolesDispo);
 	    
-	    for(int i = 0 ; i < nbrJoueur ; i++)
+	    for(int i = 0 ; i < pseudos.size() ; i++)
 	    {
-		
-		System.out.println("\n------\nJOUEUR " + (i+1));
-		System.out.println("\nRoles disponibles :");
-		for(Role role : rolesDispo) System.out.println("\t" + role.toString());
-		System.out.print("\nNom := ");
-		nom = sc.nextLine();
-		
-		do
-		{
-		    System.out.print("Role := ");
-		    choix = sc.nextLine().toUpperCase();
-		}
-		while(!rolesDispo.contains(Role.getFromName(choix)));				    // Tant que le user ne tappe pas un role existant ou disponible
-		
-		     if(choix.equals(Role.EXPLORATEUR.name()))	joueurs.add(new Explorateur(nom));  // Ajout de l'aventurier dans la liste
-		else if(choix.equals(Role.INGENIEUR.name()))	joueurs.add(new Ingenieur(nom));
-		else if(choix.equals(Role.MESSAGER.name()))	joueurs.add(new Messager(nom));
-		else if(choix.equals(Role.NAVIGATEUR.name()))	joueurs.add(new Navigateur(nom));
-		else if(choix.equals(Role.PILOTE.name()))	joueurs.add(new Pilote(nom));
-		else						joueurs.add(new Plongeur(nom));
+		     if(rolesDispo.get(0) == Role.EXPLORATEUR)  joueurs.add(new Explorateur(pseudos.get(i)));  // Ajout de l'aventurier dans la liste
+		else if(rolesDispo.get(0) == Role.INGENIEUR)	joueurs.add(new Ingenieur(pseudos.get(i)));
+		else if(rolesDispo.get(0) == Role.MESSAGER)	joueurs.add(new Messager(pseudos.get(i)));
+		else if(rolesDispo.get(0) == Role.NAVIGATEUR)   joueurs.add(new Navigateur(pseudos.get(i)));
+		else if(rolesDispo.get(0) == Role.PILOTE)	joueurs.add(new Pilote(pseudos.get(i)));
+		else						joueurs.add(new Plongeur(pseudos.get(i)));
 		
 		joueurs.get(i).placerAventurier(grille);
-		rolesDispo.remove(joueurs.get(i).getRole());					    // Suppression de la liste des aventuriers disponibles
+		rolesDispo.remove(0);
 	    }
-	    */
+
 	}
 	
 	
@@ -247,6 +239,7 @@ public class Controleur implements Observer{
 	{
 	    tirerCarteTirage();
 	    tirerCarteTirage();
+	    System.out.println(getJActuel().getInventaire().size());
 	}
 	indexJoueurActuel = 0;
 	
@@ -259,12 +252,14 @@ public class Controleur implements Observer{
     {
 	if(!piocheCT.isEmpty())
 	{
+	    
 	    CarteTirage carte = piocheCT.get(piocheCT.size()-1);
 	    piocheCT.remove(carte);
 	    defausseCT.add(carte);
 
 	    if(carte.getType() == TypeCarte.MEAUX)
 	    {
+		
 		niveauEau++;
 
 		Collections.shuffle(defausseCI);
@@ -276,12 +271,15 @@ public class Controleur implements Observer{
 	    }
 	    else if(!getJActuel().isMainPleine())
 	    {
+		getJActuel().addInventaire(carte);
+		
 		piocheCT.remove(carte);
 		defausseCT.add(carte);
 	    }
 	}
 	else
 	{
+	    
 	    piocheCT.addAll(defausseCT);
 	    defausseCT.clear();
 	    Collections.shuffle(piocheCT);
@@ -321,7 +319,8 @@ public class Controleur implements Observer{
 		    (tresors.get(2).getEmplacement()[0].getEtat() == EtatTuile.RETIREE && tresors.get(2).getEmplacement()[1].getEtat() == EtatTuile.RETIREE) ||
 		    (tresors.get(3).getEmplacement()[0].getEtat() == EtatTuile.RETIREE && tresors.get(3).getEmplacement()[1].getEtat() == EtatTuile.RETIREE) )
 	    {
-		vuePlateau.afficher(false);
+		vueJoueurCarte.getWindow().dispose();
+		vuePlateau.getWindow().dispose();
 		return true;
 	    }
 	    else return false;
@@ -341,7 +340,8 @@ public class Controleur implements Observer{
 	    
 	    if(tresorOK && grille.chercherTuile("Héliport").getAventuriers().size() >= 4)
 	    {
-		vuePlateau.afficher(false);
+		vueJoueurCarte.getWindow().dispose();
+		vuePlateau.getWindow().dispose();
 		return true;
 	    }
 	    else return false;
@@ -407,15 +407,21 @@ public class Controleur implements Observer{
 	    return surLaTuile;
 	}
 	
-	public void donnerCarte(Aventurier avChoisi, CarteTresor carte)
-	{
-	    HashSet<Aventurier> aventuriers = getJActuel().donnerCarte(joueurs);
-	    if(aventuriers.contains(avChoisi))
-	    {
-		getJActuel().rmInventaire(carte);
-		avChoisi.addInventaire(carte);
-	    }
+	
+    private void showAventurierReceveur()
+    {
+	
+    }
+	
+    public void donnerCarte(Aventurier avChoisi, CarteTresor carte)
+    {
+        HashSet<Aventurier> aventuriers = getJActuel().donnerCarte(joueurs);
+        if(aventuriers.contains(avChoisi))
+        {
+	    getJActuel().rmInventaire(carte);
+	    avChoisi.addInventaire(carte);
 	}
+    }
 	
 	
     private void gagnerTresor()
@@ -443,7 +449,6 @@ public class Controleur implements Observer{
     @Override
     public void update(Observable VueAventurier, Object action)
     {
-	
 	if(action.getClass() == MessagePlateau.class)
 	{
 	    MessagePlateau message = (MessagePlateau)action;
@@ -459,8 +464,7 @@ public class Controleur implements Observer{
 		    break;
 
 		case DONNER:
-		    //donnerCarte();
-		    nbAction--;
+		    showAventurierReceveur();
 		    break;
 
 		case RECUPERER_TRESOR:
@@ -481,7 +485,7 @@ public class Controleur implements Observer{
 
 		case CHOISIR_TUILE:
 		    Tuile tuileChoix = (Tuile)ObjetIdentifie.getFromId(message.getIdTuile());
-		    switch(lastCmd)
+		    switch(lastMsg.getCommande())
 		    {
 			case DEPLACER:
 			    if(seDeplacer(tuileChoix))
@@ -505,7 +509,7 @@ public class Controleur implements Observer{
 			    }
 			    break;
 			case CHOISIR_TUILE:
-			    if(lastlastCmd == Commandes.ASSECHER && getJActuel().getRole() == Role.INGENIEUR)
+			    if(lastLastMsg.getCommande() == Commandes.ASSECHER && getJActuel().getRole() == Role.INGENIEUR)
 			    {
 				if(assecherTuile(tuileChoix)) isAssechementPossible();
 			    }
@@ -514,7 +518,28 @@ public class Controleur implements Observer{
 			default:break;
 		    }
 		    break;
-		default:break;
+		    
+		case CHOISIR_CARTE:
+		    System.out.println("!");
+		    switch(lastMsg.getCommande())
+		    {
+			case VALIDER_JOUEURS:
+			    System.out.println("!");
+			    if(lastLastMsg.getCommande() == Commandes.DONNER)
+			    {
+				
+				CarteTirage carte = (CarteTirage)ObjetIdentifie.getFromId(message.getIdCarte());
+				Aventurier av = (Aventurier)ObjetIdentifie.getFromId(lastMsg.getIdAventurier());
+				if(carte.getType() == TypeCarte.TRESOR)
+				{
+				    donnerCarte(av, (CarteTresor)carte);
+				    vueJoueurCarte.mettreAJour();
+				}
+			    }
+			    break;
+			default:break;
+		    }
+		    break;
 	    }
 
 	    if(nbAction <= 0)
@@ -523,15 +548,18 @@ public class Controleur implements Observer{
 	    }
 	    else
 	    {
-		lastlastCmd = lastCmd;
-		lastCmd = message.getCommande();
+		lastLastMsg = lastMsg;
+		lastMsg = message;
 	    }
 	}
 	else
 	{
 	    MessageInscription message = (MessageInscription)action;
-	    
-	    lancerPartie(message.getDifficulte(), message.getPseudos());
+	    niveauEau = message.getDifficulte();
+	    inscrireJoueurs(message.getPseudos());
+
+	    vueInscription.getWindow().dispose();
+	    lancerPartie();
 	}
     }
 	
@@ -543,12 +571,14 @@ public class Controleur implements Observer{
 	tresors.add(new Tresor(TypeTresor.CALICE, grille.chercherTuile("Le palais de corail"), grille.chercherTuile("Le palais des marees")));
     }
 	
-    public void lancerPartie(int difficulte, ArrayList<String> pseudos)
+    public void lancerPartie()
     {
-	inscrireJoueurs();
 	initialiserCarte();
 	vuePlateau = new VuePlateau(grille);
 	vuePlateau.addObserver(this);
+	vueJoueurCarte = new VueJoueurCarte(joueurs);
+	vueJoueurCarte.addObserver(this);
+	
 	getJActuel().setDeplacementSpecialEffectue(false);
 	resetIHM();
     }
@@ -573,5 +603,6 @@ public class Controleur implements Observer{
     {
 	return joueurs.get(indexJoueurActuel);
     }
+
 
 }
